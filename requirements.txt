@@ -1,4 +1,4 @@
-python-telegram-bot==20.7
+python-telegram-bot==13.7
 chromadb==0.4.15
 sentence-transformers==2.2.2
 aiohttp==3.9.1
