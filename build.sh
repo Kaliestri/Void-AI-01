@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-echo "🔧 Instalando dependencias con pip..."
-pip install -r requirements.txt
+pip install --upgrade pip
+pip install --only-binary=all -r requirements.txt
