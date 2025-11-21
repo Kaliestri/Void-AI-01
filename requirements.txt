@@ -1,5 +1,5 @@
 python-telegram-bot==13.7
-pillow==10.0.1
+pillow==9.5.0
 chromadb==0.4.15
 sentence-transformers==2.2.2
 aiohttp==3.9.1
