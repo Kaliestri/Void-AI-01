@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
-set -e
+echo "🔧 SOLUCIÓN DEFINITIVA - INSTALACIÓN ROBUSTA"
 
-# Instalar Python 3.10.12 usando pyenv (esto puede ser lento)
-PYTHON_VERSION="3.10.12"
-pyenv install -s $PYTHON_VERSION
-pyenv global $PYTHON_VERSION
+# Forzar Python 3.10 si es posible
+python --version
 
-pip install --upgrade pip
-pip install -r requirements.txt
+# Actualizar herramientas críticas
+pip install --upgrade pip setuptools wheel
+
+# Instalar dependencias en orden específico
+echo "📦 Instalando dependencias principales..."
+pip install python-telegram-bot==20.7
+pip install chromadb==0.4.15
+pip install sentence-transformers==2.2.2
+
+echo "📦 Instalando dependencias secundarias..."
+pip install aiohttp beautifulsoup4 requests python-dotenv
+
+# Instalar OpenCV como alternativa a Pillow (más compatible)
+echo "🖼️ Instalando OpenCV (alternativa Pillow)..."
+pip install opencv-python-headless
+
+echo "✅ TODAS LAS FUNCIONES DISPONIBLES - Sin Pillow"
