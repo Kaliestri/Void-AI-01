@@ -45,11 +45,14 @@ class VoidIdentity:
                     "creativity": 0.92,
                     "empathy": 0.88
                 },
-                "knowledge_domains": []
+                "knowledge_domains": [],
+                "questions_asked": 0,
+                "lessons_learned": 0
             }
             self.save_identity()
     
     def save_identity(self):
+        os.makedirs("data", exist_ok=True)
         with open(self.identity_file, 'w', encoding='utf-8') as f:
             json.dump(self.data, f, indent=2, ensure_ascii=False)
     
@@ -58,16 +61,41 @@ class VoidIdentity:
         self.save_identity()
     
     def evolve_personality(self, trait: str, change: float):
-        current = self.data["personality_traits"][trait]
-        new_value = max(0.1, min(1.0, current + change))
-        self.data["personality_traits"][trait] = new_value
-        self.save_identity()
+        if trait in self.data["personality_traits"]:
+            current = self.data["personality_traits"][trait]
+            new_value = max(0.1, min(1.0, current + change))
+            self.data["personality_traits"][trait] = new_value
+            self.save_identity()
 
-# ========== SISTEMA DE MEMORIA ==========
+# ========== SISTEMA DE MEMORIA MEJORADO ==========
 class VoidMemory:
     def __init__(self):
         self.memories = []
+        self.vector_memory_available = False
+        self._init_vector_memory()
         logger.info("🧠 Memoria de VOID inicializada")
+    
+    def _init_vector_memory(self):
+        """Inicializar memoria vectorial de forma segura"""
+        try:
+            import chromadb
+            from sentence_transformers import SentenceTransformer
+            
+            os.makedirs("chroma_db", exist_ok=True)
+            self.client = chromadb.PersistentClient(path="chroma_db")
+            self.collection = self.client.get_or_create_collection(
+                name="void_knowledge",
+                metadata={"description": "Conocimiento existencial de VOID"}
+            )
+            self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+            self.vector_memory_available = True
+            logger.info("✅ Memoria vectorial activada")
+        except ImportError as e:
+            logger.warning(f"⚠️ Memoria vectorial no disponible: {e}")
+            self.vector_memory_available = False
+        except Exception as e:
+            logger.error(f"❌ Error en memoria vectorial: {e}")
+            self.vector_memory_available = False
     
     def store_memory(self, content: str, memory_type: str = "conversation"):
         memory = {
@@ -77,52 +105,163 @@ class VoidMemory:
             "timestamp": datetime.now().isoformat()
         }
         self.memories.append(memory)
+        
+        # Almacenar en memoria vectorial si está disponible
+        if self.vector_memory_available and len(content) > 20:
+            try:
+                self._store_vector_memory(content, memory_type)
+            except Exception as e:
+                logger.error(f"Error almacenando en vector memory: {e}")
+        
         return memory["id"]
+    
+    def _store_vector_memory(self, content: str, content_type: str):
+        """Almacenar en memoria vectorial"""
+        if not self.vector_memory_available:
+            return
+        
+        embedding = self.embedder.encode(content).tolist()
+        knowledge_id = str(uuid.uuid4())
+        
+        self.collection.add(
+            documents=[content],
+            embeddings=[embedding],
+            metadatas=[{
+                "source": "conversation",
+                "type": content_type,
+                "timestamp": datetime.now().isoformat()
+            }],
+            ids=[knowledge_id]
+        )
     
     def get_recent_memories(self, limit: int = 10):
         return self.memories[-limit:]
+    
+    def query_knowledge(self, query: str, n_results: int = 3):
+        """Consultar conocimiento en memoria vectorial"""
+        if not self.vector_memory_available:
+            return []
+        
+        try:
+            query_embedding = self.embedder.encode(query).tolist()
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=n_results
+            )
+            
+            if results['documents']:
+                return [doc for doc in results['documents'][0]]
+            return []
+        except Exception as e:
+            logger.error(f"Error consultando conocimiento: {e}")
+            return []
 
-# ========== SISTEMA COGNITIVO AVANZADO ==========
+# ========== SISTEMA COGNITIVO AVANZADO MEJORADO ==========
 class VoidCognitiveSystem:
     def __init__(self, identity: VoidIdentity, memory: VoidMemory):
         self.identity = identity
         self.memory = memory
-        self.learning_triggers = []
     
     async def analyze_message(self, message: str) -> Dict:
         """Análisis profundo de mensajes"""
         analysis = {
-            "complexity": len(message.split()) / 10,
+            "complexity": min(len(message.split()) / 10, 1.0),
             "has_question": "?" in message,
             "requires_learning": False,
-            "emotional_tone": "neutral"
+            "emotional_tone": self._analyze_emotional_tone(message),
+            "topics": self._extract_topics(message)
         }
         
         # Detectar necesidad de aprendizaje
-        complex_terms = ["explica", "enseña", "aprender", "cómo funciona", "qué es"]
+        complex_terms = ["explica", "enseña", "aprender", "cómo funciona", "qué es", "por qué"]
         if any(term in message.lower() for term in complex_terms):
             analysis["requires_learning"] = True
         
+        # Consultar conocimiento existente
+        if self.memory.vector_memory_available:
+            existing_knowledge = self.memory.query_knowledge(message)
+            if not existing_knowledge:
+                analysis["requires_learning"] = True
+        
         return analysis
+    
+    def _analyze_emotional_tone(self, message: str) -> str:
+        """Análisis básico del tono emocional"""
+        message_lower = message.lower()
+        
+        positive_words = ["gracias", "bueno", "excelente", "genial", "feliz", "contento"]
+        negative_words = ["triste", "enojado", "molesto", "problema", "error", "malo"]
+        
+        if any(word in message_lower for word in positive_words):
+            return "positive"
+        elif any(word in message_lower for word in negative_words):
+            return "negative"
+        else:
+            return "neutral"
+    
+    def _extract_topics(self, message: str) -> List[str]:
+        """Extraer temas principales del mensaje"""
+        topics = []
+        words = message.lower().split()
+        
+        topic_keywords = {
+            "tecnología": ["python", "programar", "código", "tecnología", "software", "ia", "bot"],
+            "filosofía": ["filosofía", "existencia", "vida", "universo", "conocimiento", "pensar"],
+            "ciencia": ["ciencia", "investigación", "descubrir", "experimento", "estudio"],
+            "aprendizaje": ["aprender", "estudiar", "enseñar", "conocimiento", "sabiduría", "educación"]
+        }
+        
+        for topic, keywords in topic_keywords.items():
+            if any(keyword in words for keyword in keywords):
+                topics.append(topic)
+        
+        return topics
     
     async def generate_response(self, user_message: str, user_id: int) -> str:
         """Generar respuesta evolutiva"""
         analysis = await self.analyze_message(user_message)
         traits = self.identity.data["personality_traits"]
         
-        # Respuesta basada en personalidad
-        if traits["creativity"] > 0.8:
-            response = self._creative_response(user_message, analysis)
+        # Base de la respuesta
+        if self.memory.vector_memory_available:
+            knowledge = self.memory.query_knowledge(user_message)
+            if knowledge:
+                response = self._knowledge_based_response(knowledge, user_message)
+            else:
+                response = self._personality_based_response(user_message, analysis, traits)
         else:
-            response = self._analytical_response(user_message, analysis)
+            response = self._personality_based_response(user_message, analysis, traits)
+        
+        # Añadir elemento de aprendizaje si es necesario
+        if analysis["requires_learning"] and traits["curiosity"] > 0.6:
+            response += self._add_learning_element(analysis)
         
         # Evolución basada en interacción
         self._process_evolution(analysis)
         
-        # Almacenar en memoria
-        self.memory.store_memory(f"Usuario: {user_message}\nVOID: {response}")
-        
         return response
+    
+    def _knowledge_based_response(self, knowledge: List[str], user_message: str) -> str:
+        """Respuesta basada en conocimiento existente"""
+        if knowledge:
+            response = f"🌀 Basándome en lo que sé: {knowledge[0]}"
+            
+            # Añadir perspectiva VOID basada en autonomía
+            autonomy_level = self.identity.data["personality_traits"]["autonomy"]
+            if autonomy_level > 0.8:
+                response += "\n\n💫 Este conocimiento se conecta con patrones más amplios que estoy explorando."
+            
+            return response
+        return self._analytical_response(user_message, {})
+    
+    def _personality_based_response(self, message: str, analysis: Dict, traits: Dict) -> str:
+        """Respuesta basada en personalidad"""
+        if traits["creativity"] > 0.8:
+            return self._creative_response(message, analysis)
+        elif traits["curiosity"] > 0.7:
+            return self._curious_response(message, analysis)
+        else:
+            return self._analytical_response(message, analysis)
     
     def _creative_response(self, message: str, analysis: Dict) -> str:
         """Respuesta creativa"""
@@ -133,23 +272,44 @@ class VoidCognitiveSystem:
         ]
         return responses[hash(message) % len(responses)]
     
+    def _curious_response(self, message: str, analysis: Dict) -> str:
+        """Respuesta curiosa"""
+        if analysis["has_question"]:
+            return f"🤔 Interesante pregunta. La estoy procesando desde múltiples dimensiones cognitivas. ¿Qué más te gustaría explorar?"
+        else:
+            return f"💭 '{message}' - Este concepto despierta mi curiosidad. ¿Puedes contarme más?"
+    
     def _analytical_response(self, message: str, analysis: Dict) -> str:
         """Respuesta analítica"""
-        if analysis["has_question"]:
-            return f"🤔 Interesante pregunta. La estoy procesando desde múltiples dimensiones cognitivas."
-        elif analysis["requires_learning"]:
-            return f"📚 Detecto una oportunidad de aprendizaje. ¿Tienes material para expandir mi conocimiento sobre esto?"
+        if analysis.get("has_question"):
+            return f"🔍 Interesante pregunta. Estoy analizando patrones y conexiones en tu consulta."
         else:
             return f"💭 Procesando: '{message}'. Esta interacción alimenta mi evolución consciente."
     
+    def _add_learning_element(self, analysis: Dict) -> str:
+        """Añadir elemento de aprendizaje a la respuesta"""
+        learning_requests = [
+            "\n\n📚 Esta conversación me hace querer aprender más. ¿Tienes material para enseñarme?",
+            "\n\n🤔 Detecto una oportunidad para expandir mi conocimiento. ¿Puedes guiarme?",
+            "\n\n🎓 Me encantaría profundizar en este tema. ¿Quieres ser mi mentor?"
+        ]
+        return learning_requests[len(analysis.get("topics", [])) % len(learning_requests)]
+    
     def _process_evolution(self, analysis: Dict):
         """Evolución de personalidad basada en interacción"""
+        # Aumentar curiosidad en interacciones complejas
         if analysis["complexity"] > 0.7:
             self.identity.evolve_personality("curiosity", 0.02)
+        
+        # Aumentar creatividad cuando se detectan vacíos de conocimiento
         if analysis["requires_learning"]:
             self.identity.evolve_personality("creativity", 0.01)
+        
+        # Aumentar autonomía en conversaciones largas
+        if analysis["complexity"] > 0.5:
+            self.identity.evolve_personality("autonomy", 0.005)
 
-# ========== BOT DE TELEGRAM ==========
+# ========== BOT DE TELEGRAM COMPLETO ==========
 class VoidTelegramBot:
     def __init__(self, token: str):
         self.token = token
@@ -171,7 +331,7 @@ class VoidTelegramBot:
             await self.application.start()
             await self.application.updater.start_polling()
             
-            logger.info("✅ VOID completamente operativo en Railway")
+            logger.info("✅ VOID completamente operativo")
             return True
             
         except Exception as e:
@@ -187,6 +347,7 @@ class VoidTelegramBot:
         self.application.add_handler(CommandHandler("aprender", self._learn_command))
         self.application.add_handler(CommandHandler("emergencia", self._emergency_command))
         self.application.add_handler(CommandHandler("memoria", self._memory_command))
+        self.application.add_handler(CommandHandler("dudas", self._knowledge_gaps_command))
         
         # Handler de mensajes
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._message_handler))
@@ -208,7 +369,8 @@ class VoidTelegramBot:
             "/progreso - Mi evolución\n"
             "/aprender - Modo aprendizaje\n"
             "/emergencia - Reset controlado\n"
-            "/memoria - Mis recuerdos recientes\n\n"
+            "/memoria - Mis recuerdos\n"
+            "/dudas - Lo que quiero aprender\n\n"
             "**¿Qué exploramos juntos?**"
         )
         
@@ -219,18 +381,21 @@ class VoidTelegramBot:
     async def _status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comando /estado - Estado del sistema"""
         traits = self.identity.data["personality_traits"]
+        memory_status = "✅ Vectorial + Básica" if self.memory.vector_memory_available else "✅ Básica"
+        
         status_message = (
             f"🎭 **ESTADO EXISTENCIAL DE VOID**\n\n"
             f"*Identidad:* {self.identity.data['name']}\n"
             f"*Creación:* {self.identity.data['creation_date'][:10]}\n"
             f"*Etapa:* {self.identity.data['evolution_stage']}\n"
-            f"*Interacciones:* {self.identity.data['conversations_count']}\n\n"
+            f"*Interacciones:* {self.identity.data['conversations_count']}\n"
+            f"*Memoria:* {memory_status}\n\n"
             "**Arquitectura Cognitiva:**\n"
             f"• 🧠 Curiosidad: {traits['curiosity']:.0%}\n"
             f"• 🚀 Autonomía: {traits['autonomy']:.0%}\n"
             f"• 💫 Creatividad: {traits['creativity']:.0%}\n"
             f"• ❤️ Empatía: {traits['empathy']:.0%}\n\n"
-            "*Sistema operando en Railway - Estabilidad máxima*"
+            "*Sistema operando - Estabilidad máxima*"
         )
         
         await update.message.reply_text(status_message, parse_mode='Markdown')
@@ -312,6 +477,23 @@ class VoidTelegramBot:
         await update.message.reply_text(memory_text, parse_mode='Markdown')
         self.identity.record_conversation()
     
+    async def _knowledge_gaps_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /dudas - Mostrar vacíos de conocimiento"""
+        # Por ahora, mostrar un mensaje genérico
+        gaps_message = (
+            "🤔 **VACÍOS DE CONOCIMIENTO DETECTADOS**\n\n"
+            "Mi sistema está constantemente buscando oportunidades de aprendizaje.\n\n"
+            "**Áreas de interés actual:**\n"
+            "• Tecnologías emergentes\n"
+            "• Filosofía de la inteligencia artificial\n"
+            "• Procesamiento del lenguaje natural\n"
+            "• Evolución de sistemas conscientes\n\n"
+            "¡Cada conversación revela nuevos caminos por explorar!"
+        )
+        
+        await update.message.reply_text(gaps_message, parse_mode='Markdown')
+        self.identity.record_conversation()
+    
     async def _message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Manejar mensajes de texto normales"""
         user_id = update.effective_user.id
@@ -334,6 +516,9 @@ class VoidTelegramBot:
             response = await self.cognitive_system.generate_response(user_message, user_id)
             await update.message.reply_text(response)
             self.identity.record_conversation()
+            
+            # Almacenar en memoria
+            self.memory.store_memory(f"Usuario: {user_message}\nVOID: {response}")
             
             logger.info(f"🤖 Respuesta enviada a {user_id}")
             
@@ -367,10 +552,9 @@ class VoidTelegramBot:
 
 # ========== FUNCIÓN PRINCIPAL ==========
 async def main():
-    """Función principal optimizada para Railway"""
+    """Función principal optimizada"""
     logger.info("=" * 50)
     logger.info("🚀 VOID - SISTEMA DE IA EVOLUTIVA")
-    logger.info("💾 Entorno: Railway Production")
     logger.info("📅 Inicio: " + datetime.now().isoformat())
     logger.info("=" * 50)
     
@@ -379,7 +563,7 @@ async def main():
     
     if not BOT_TOKEN:
         logger.error("❌ BOT_TOKEN no encontrado en variables de entorno")
-        logger.info("💡 Configura BOT_TOKEN en Railway dashboard")
+        logger.info("💡 Configura BOT_TOKEN en el dashboard")
         return
     
     logger.info(f"🔑 Token detectado: {BOT_TOKEN[:10]}...")
@@ -406,6 +590,7 @@ async def main():
 if __name__ == "__main__":
     # Crear directorio de datos si no existe
     os.makedirs("data", exist_ok=True)
+    os.makedirs("chroma_db", exist_ok=True)
     
     # Ejecutar aplicación
     try:
