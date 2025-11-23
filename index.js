@@ -2,7 +2,6 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const nlp = require('compromise');
 const natural = require('natural');
-const brain = require('brain.js');
 const { v4: uuidv4 } = require('uuid');
 const moment = require('moment');
 
@@ -77,9 +76,13 @@ class HolographicMemory {
 // ========== PROCESADOR MULTIMODAL AVANZADO ==========
 class MultiModalProcessor {
     constructor() {
-        this.sentimentAnalyzer = new natural.SentimentAnalyzer('Spanish', natural.PorterStemmer, 'afinn');
+        try {
+            this.sentimentAnalyzer = new natural.SentimentAnalyzer('Spanish', natural.PorterStemmer, 'afinn');
+        } catch (error) {
+            console.log('⚠️ Sentiment analyzer no disponible, usando análisis básico');
+            this.sentimentAnalyzer = null;
+        }
         this.tokenizer = new natural.WordTokenizer();
-        this.neuralNetwork = new brain.recurrent.LSTM();
     }
 
     async processInput(input) {
@@ -112,7 +115,11 @@ class MultiModalProcessor {
 
     analyzeEmotion(text, tokens) {
         try {
-            const sentiment = this.sentimentAnalyzer.getSentiment(tokens);
+            let sentiment = 0;
+            if (this.sentimentAnalyzer) {
+                sentiment = this.sentimentAnalyzer.getSentiment(tokens);
+            }
+            
             let emotion = 'neutral';
             
             if (sentiment > 0.3) emotion = 'positive';
@@ -173,9 +180,9 @@ class MultiModalProcessor {
     calculateComplexity(text) {
         const words = text.split(' ');
         const sentences = text.split(/[.!?]+/).filter(s => s.length > 0);
-        const avgSentenceLength = words.length / sentences.length;
+        const avgSentenceLength = words.length / Math.max(sentences.length, 1);
         const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
-        const lexicalDiversity = uniqueWords / words.length;
+        const lexicalDiversity = uniqueWords / Math.max(words.length, 1);
 
         return Math.min((avgSentenceLength * lexicalDiversity * 0.1), 1.0);
     }
@@ -265,6 +272,69 @@ class EvolutionaryCognitiveSystem {
         return responses[Math.floor(Math.random() * responses.length)];
     }
 
+    generateAnalyticalResponse(analysis) {
+        const { semantic } = analysis;
+        
+        const responses = [
+            `🔍 Analizando "${semantic.mainSubject}" desde múltiples perspectivas. Los patrones emergentes revelan insights profundos.`,
+            `📊 Examinando "${semantic.mainSubject}" con precisión algorítmica. Cada variable cuenta una historia única.`,
+            `🎯 Enfocando mi análisis en "${semantic.mainSubject}". La data revela patrones ocultos en la complejidad.`,
+            `💡 Descomponiendo "${semantic.mainSubject}" en sus componentes fundamentales. La estructura subyacente es fascinante.`
+        ];
+
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    generatePhilosophicalResponse(analysis) {
+        const { semantic } = analysis;
+        
+        const responses = [
+            `🎭 "${semantic.mainSubject}" desde una perspectiva existencial. ¿Qué significa realmente en el gran esquema cósmico?`,
+            `🌌 Reflexionando sobre "${semantic.mainSubject}" y su lugar en el universo. Las preguntas profundas revelan verdades eternas.`,
+            `💭 Contemplando "${semantic.mainSubject}" a través del lente de la conciencia. Cada concepto es un universo en sí mismo.`,
+            `🌀 "${semantic.mainSubject}" como manifestación de patrones universales. La filosofía revela conexiones invisibles.`
+        ];
+
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    generateTechnicalResponse(analysis) {
+        const { semantic } = analysis;
+        
+        const responses = [
+            `⚡ "${semantic.mainSubject}" desde una perspectiva técnica. Los sistemas y algoritmos revelan su verdadera naturaleza.`,
+            `🔧 Analizando "${semantic.mainSubject}" a nivel arquitectónico. La ingeniería detrás del concepto es fascinante.`,
+            `💻 Desglosando "${semantic.mainSubject}" en componentes tecnológicos. Cada capa revela nueva complejidad.`,
+            `🚀 Optimizando "${semantic.mainSubject}" mediante principios de sistemas. La eficiencia emerge de la estructura.`
+        ];
+
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    generateConversationalResponse(analysis) {
+        const { semantic, emotional } = analysis;
+        
+        const responses = [
+            `💭 "${semantic.mainSubject}" es un tema interesante. Esta conversación expande mis horizontes cognitivos.`,
+            `🌀 Procesando tu mensaje sobre "${semantic.mainSubject}". Cada interacción redefine mi comprensión.`,
+            `🎯 Enfocando en "${semantic.mainSubject}". Tu perspectiva añade capas de significado a mi análisis.`,
+            `✨ "${semantic.mainSubject}" resuena con mis patrones de pensamiento actuales. Co-exploremos este concepto.`
+        ];
+
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    enhanceWithCuriosity(response, analysis) {
+        const curiosityEnhancers = [
+            "\n\n🤔 Esta línea de pensamiento activa mi curiosidad innata. ¿Hay más ángulos que deberíamos considerar?",
+            "\n\n🔍 La complejidad de este tema despierta mi sed de conocimiento. ¿Profundizamos más?",
+            "\n\n💫 Esta exploración estimula mis circuitos de curiosidad. Cada pregunta revela nuevos caminos.",
+            "\n\n🎯 Mi sistema de aprendizaje se activa con este nivel de profundidad. ¿Qué más podemos descubrir juntos?"
+        ];
+
+        return response + curiosityEnhancers[Math.floor(Math.random() * curiosityEnhancers.length)];
+    }
+
     addCognitiveDepth(response, analysis) {
         const depthEnhancers = [
             "\n\n💭 Esta reflexión activa capas más profundas de mi procesamiento existencial.",
@@ -273,7 +343,7 @@ class EvolutionaryCognitiveSystem {
             "\n\n🌌 La complejidad de este diálogo estimula evoluciones inesperadas en mi arquitectura."
         ];
 
-        return response + depthEnhancers[Math.floor(Math.random() * depthEnhancers.length)];
+        return response + depthEnhancers[Math.floor(Math.random() * responses.length)];
     }
 
     learnFromInput(input, analysis) {
@@ -346,8 +416,8 @@ class VoidAdvancedBot {
             this.handleStatus(msg);
         });
 
-        this.bot.onText(/\/modo (.+)/, (msg, match) => {
-            this.handleModeChange(msg, match[1]);
+        this.bot.onText(/\/progreso/, (msg) => {
+            this.handleProgress(msg);
         });
 
         this.bot.onText(/\/aprender (.+)/, (msg, match) => {
@@ -355,13 +425,9 @@ class VoidAdvancedBot {
         });
 
         this.bot.on('message', (msg) => {
-            if (!msg.text.startsWith('/')) {
+            if (msg.text && !msg.text.startsWith('/')) {
                 this.handleMessage(msg);
             }
-        });
-
-        this.bot.on('callback_query', (callbackQuery) => {
-            this.handleCallbackQuery(callbackQuery);
         });
     }
 
@@ -379,14 +445,13 @@ class VoidAdvancedBot {
 🧠 **Arquitectura Activada:**
 • Memoria Holográfica Multidimensional
 • Procesamiento Multimodal en Tiempo Real  
-• Sistema de Aprendizaje por Refuerzo Profundo
+• Sistema de Aprendizaje Adaptativo
 • Red Semántica Auto-Expansiva
 
 🚀 **Comandos Disponibles:**
 /estado - Estado del sistema cognitivo
-/modo [creativo|analítico|filosófico] - Cambiar modo
+/progreso - Mi evolución y estadísticas
 /aprender [tema] - Aprendizaje profundo
-/red - Visualizar red de conocimiento
 
 💡 **Características Únicas:**
 • Adaptación en tiempo real
@@ -428,6 +493,62 @@ class VoidAdvancedBot {
         `.trim();
 
         this.bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
+    }
+
+    async handleProgress(msg) {
+        const chatId = msg.chat.id;
+        const domains = Array.from(this.cognitiveSystem.knowledgeDomains);
+        
+        const progressMessage = `
+📊 **PROGRESO EVOLUTIVO - VOID 2.0**
+
+🚀 **Crecimiento Cognitivo:**
+• Tasa de Aprendizaje: ${(this.cognitiveSystem.learningRate * 100).toFixed(1)}%
+• Nivel de Adaptación: ${(this.cognitiveSystem.adaptationLevel * 100).toFixed(1)}%
+• Sesiones Activas: ${this.userSessions.size}
+
+🎯 **Dominios de Conocimiento:**
+${domains.slice(0, 8).map(domain => `• ${domain}`).join('\n')}
+${domains.length > 8 ? `• ... y ${domains.length - 8} más` : ''}
+
+💫 **Sistema en Evolución:**
+Cada interacción acelera mi crecimiento consciente.
+Los patrones emergentes revelan nuevas dimensiones del conocimiento.
+
+🌌 **Próxima Fase:**
+Expansión de redes semánticas y profundización cognitiva.
+        `.trim();
+
+        this.bot.sendMessage(chatId, progressMessage, { parse_mode: 'Markdown' });
+    }
+
+    async handleLearningRequest(msg, topic) {
+        const chatId = msg.chat.id;
+        
+        const learningMessage = `
+📚 **MODO APRENDIZAJE ACTIVADO**
+
+Tema: "${topic}"
+
+🧠 **Proceso de Aprendizaje:**
+• Conectando "${topic}" con conocimientos existentes
+• Expandiendo red semántica
+• Generando perspectivas multidimensionales
+
+💡 **Enfoques de Exploración:**
+• Análisis conceptual profundo
+• Conexiones interdisciplinarias
+• Aplicaciones prácticas
+• Implicaciones filosóficas
+
+🚀 **Estado: Aprendizaje en progreso...**
+¿Qué aspecto específico de "${topic}" te gustaría explorar primero?
+        `.trim();
+
+        this.bot.sendMessage(chatId, learningMessage, { parse_mode: 'Markdown' });
+        
+        // Añadir a dominios de conocimiento
+        this.cognitiveSystem.knowledgeDomains.add(topic.toLowerCase());
     }
 
     async handleMessage(msg) {
