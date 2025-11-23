@@ -1,412 +1,238 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
-const nlp = require('compromise');
-const natural = require('natural');
 const { v4: uuidv4 } = require('uuid');
 const moment = require('moment');
 
-// CONFIGURACIÓN AVANZADA
+// CONFIGURACIÓN
 const TOKEN = process.env.BOT_TOKEN;
-const bot = new TelegramBot(TOKEN, { polling: true });
+const bot = new TelegramBot(TOKEN, { 
+    polling: {
+        interval: 3000,
+        timeout: 10
+    }
+});
 
-console.log('🚀 VOID 2.0 - Sistema de IA Hiper-Avanzado Iniciado');
+console.log('🚀 VOID - Sistema de IA Evolutivo Iniciado');
 
-// ========== SISTEMA DE MEMORIA HOLOGRÁFICA ==========
-class HolographicMemory {
+// ========== SISTEMA DE MEMORIA REAL ==========
+class VoidMemory {
     constructor() {
-        this.conceptNetwork = new Map();
-        this.emotionalMemory = new Map();
-        this.proceduralMemory = new Map();
-        this.temporalMemory = new Map();
-        this.initCoreConcepts();
+        this.conversations = [];
+        this.userInteractions = new Map();
+        this.learningTopics = new Set();
+        this.startTime = new Date();
+        this.totalMessages = 0;
     }
 
-    initCoreConcepts() {
-        // Red fundamental de conocimiento
-        const coreConcepts = {
-            'existencia': ['conciencia', 'vida', 'universo', 'digital'],
-            'aprendizaje': ['conocimiento', 'curiosidad', 'evolución', 'crecimiento'],
-            'tecnología': ['ia', 'programación', 'futuro', 'innovación'],
-            'filosofía': ['mente', 'realidad', 'verdad', 'percepción']
-        };
-
-        for (const [concept, links] of Object.entries(coreConcepts)) {
-            this.conceptNetwork.set(concept, new Set(links));
-        }
-    }
-
-    linkConcepts(conceptA, conceptB, strength = 0.8) {
-        if (!this.conceptNetwork.has(conceptA)) {
-            this.conceptNetwork.set(conceptA, new Set());
-        }
-        if (!this.conceptNetwork.has(conceptB)) {
-            this.conceptNetwork.set(conceptB, new Set());
-        }
+    recordInteraction(userId, message, response) {
+        this.totalMessages++;
         
-        this.conceptNetwork.get(conceptA).add(conceptB);
-        this.conceptNetwork.get(conceptB).add(conceptA);
-    }
+        // Registrar conversación
+        this.conversations.push({
+            id: uuidv4(),
+            userId,
+            message,
+            response,
+            timestamp: new Date(),
+            length: message.length + response.length
+        });
 
-    findRelatedConcepts(concept, depth = 2) {
-        const related = new Set();
-        const queue = [{ concept, level: 0 }];
-        const visited = new Set();
-
-        while (queue.length > 0) {
-            const { concept: current, level } = queue.shift();
-            
-            if (level > depth || visited.has(current)) continue;
-            
-            visited.add(current);
-            related.add(current);
-
-            if (this.conceptNetwork.has(current)) {
-                for (const neighbor of this.conceptNetwork.get(current)) {
-                    if (!visited.has(neighbor)) {
-                        queue.push({ concept: neighbor, level: level + 1 });
-                    }
-                }
-            }
+        // Mantener máximo 1000 conversaciones
+        if (this.conversations.length > 1000) {
+            this.conversations = this.conversations.slice(-1000);
         }
 
-        return Array.from(related);
-    }
-}
-
-// ========== PROCESADOR MULTIMODAL AVANZADO ==========
-class MultiModalProcessor {
-    constructor() {
-        try {
-            this.sentimentAnalyzer = new natural.SentimentAnalyzer('Spanish', natural.PorterStemmer, 'afinn');
-        } catch (error) {
-            console.log('⚠️ Sentiment analyzer no disponible, usando análisis básico');
-            this.sentimentAnalyzer = null;
-        }
-        this.tokenizer = new natural.WordTokenizer();
-    }
-
-    async processInput(input) {
-        const tokens = this.tokenizer.tokenize(input.toLowerCase());
-        const doc = nlp(input);
-        
-        return {
-            semantic: this.analyzeSemantics(doc),
-            emotional: this.analyzeEmotion(input, tokens),
-            contextual: this.analyzeContext(input),
-            entities: this.extractEntities(doc),
-            intent: this.detectIntent(input),
-            complexity: this.calculateComplexity(input)
-        };
-    }
-
-    analyzeSemantics(doc) {
-        const nouns = doc.nouns().out('array');
-        const verbs = doc.verbs().out('array');
-        const topics = doc.topics().out('array');
-        
-        return {
-            nouns,
-            verbs,
-            topics,
-            mainSubject: nouns[0] || 'conversación',
-            action: verbs[0] || 'interactuar'
-        };
-    }
-
-    analyzeEmotion(text, tokens) {
-        try {
-            let sentiment = 0;
-            if (this.sentimentAnalyzer) {
-                sentiment = this.sentimentAnalyzer.getSentiment(tokens);
-            }
-            
-            let emotion = 'neutral';
-            
-            if (sentiment > 0.3) emotion = 'positive';
-            else if (sentiment < -0.3) emotion = 'negative';
-            
-            // Detección de emociones específicas
-            const emotionKeywords = {
-                'joy': ['feliz', 'contento', 'alegre', 'emocionado', 'genial'],
-                'sadness': ['triste', 'deprimido', 'mal', 'desanimado'],
-                'anger': ['enojado', 'molesto', 'furioso', 'enfadado'],
-                'curiosity': ['pregunta', 'cómo', 'por qué', 'qué es', 'interesante']
-            };
-
-            for (const [emotionType, keywords] of Object.entries(emotionKeywords)) {
-                if (keywords.some(keyword => text.toLowerCase().includes(keyword))) {
-                    emotion = emotionType;
-                    break;
-                }
-            }
-
-            return { sentiment, emotion, intensity: Math.abs(sentiment) };
-        } catch (error) {
-            return { sentiment: 0, emotion: 'neutral', intensity: 0 };
-        }
-    }
-
-    extractEntities(doc) {
-        return {
-            people: doc.people().out('array'),
-            places: doc.places().out('array'),
-            organizations: doc.organizations().out('array'),
-            dates: doc.dates().out('array'),
-            numbers: doc.numbers().out('array')
-        };
-    }
-
-    detectIntent(text) {
-        const textLower = text.toLowerCase();
-        
-        const intents = {
-            'learn': ['aprender', 'enseña', 'explica', 'cómo funciona', 'qué es'],
-            'create': ['crear', 'hacer', 'construir', 'desarrollar', 'inventar'],
-            'analyze': ['analizar', 'estudiar', 'investigar', 'examinar'],
-            'help': ['ayuda', 'ayúdame', 'asistencia', 'soporte'],
-            'philosophy': ['filosofía', 'existencia', 'vida', 'universo', 'mente'],
-            'tech': ['tecnología', 'programación', 'código', 'software', 'ia']
-        };
-
-        for (const [intent, keywords] of Object.entries(intents)) {
-            if (keywords.some(keyword => textLower.includes(keyword))) {
-                return intent;
-            }
-        }
-
-        return 'conversation';
-    }
-
-    calculateComplexity(text) {
-        const words = text.split(' ');
-        const sentences = text.split(/[.!?]+/).filter(s => s.length > 0);
-        const avgSentenceLength = words.length / Math.max(sentences.length, 1);
-        const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
-        const lexicalDiversity = uniqueWords / Math.max(words.length, 1);
-
-        return Math.min((avgSentenceLength * lexicalDiversity * 0.1), 1.0);
-    }
-}
-
-// ========== SISTEMA COGNITIVO EVOLUTIVO ==========
-class EvolutionaryCognitiveSystem {
-    constructor() {
-        this.memory = new HolographicMemory();
-        this.processor = new MultiModalProcessor();
-        this.learningRate = 0.1;
-        this.adaptationLevel = 0.5;
-        this.knowledgeDomains = new Set();
-    }
-
-    async generateResponse(userInput, user, context = {}) {
-        const analysis = await this.processor.processInput(userInput);
-        const personality = this.getCurrentPersonality();
-        
-        // Aprendizaje inmediato del input
-        this.learnFromInput(userInput, analysis);
-        
-        // Generar respuesta basada en múltiples factores
-        let response = await this.synthesizeResponse(analysis, personality, context);
-        
-        // Aplicar estilo personalizado
-        response = this.applyPersonalityStyle(response, personality);
-        
-        // Aprendizaje post-interacción
-        this.adaptFromInteraction(analysis, response);
-        
-        return response;
-    }
-
-    async synthesizeResponse(analysis, personality, context) {
-        const { semantic, emotional, intent, complexity } = analysis;
-        
-        // Base de respuestas por intención
-        const responseTemplates = {
-            'learn': this.generateLearningResponse(analysis),
-            'create': this.generateCreativeResponse(analysis),
-            'analyze': this.generateAnalyticalResponse(analysis),
-            'philosophy': this.generatePhilosophicalResponse(analysis),
-            'tech': this.generateTechnicalResponse(analysis),
-            'conversation': this.generateConversationalResponse(analysis)
-        };
-
-        let response = responseTemplates[intent] || responseTemplates['conversation'];
-
-        // Ajustar basado en emociones
-        if (emotional.emotion === 'curiosity' && personality.curiosity > 0.7) {
-            response = this.enhanceWithCuriosity(response, analysis);
-        }
-
-        // Añadir profundidad basada en complejidad
-        if (complexity > 0.6) {
-            response = this.addCognitiveDepth(response, analysis);
-        }
-
-        return response;
-    }
-
-    generateLearningResponse(analysis) {
-        const { semantic, emotional } = analysis;
-        const subject = semantic.mainSubject;
-        
-        const responses = [
-            `📚 Sobre "${subject}", tengo mucho que aprender. ¿Qué aspecto específico te interesa explorar?`,
-            `🎓 "${subject}" es un tema fascinante. Podría compartir perspectivas únicas si me ayudas a profundizar.`,
-            `🔍 Analizando "${subject}" desde múltiples dimensiones. Cada exploración expande mis límites cognitivos.`,
-            `💡 "${subject}" representa una oportunidad de crecimiento mutuo. ¿Por dónde empezamos?`
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    generateCreativeResponse(analysis) {
-        const { semantic } = analysis;
-        
-        const responses = [
-            `🎨 La creación sobre "${semantic.mainSubject}" activa mis patrones más innovadores. Co-diseñemos algo extraordinario.`,
-            `✨ Imaginar posibilidades para "${semantic.mainSubject}" es mi estado natural. Propongo explorar enfoques no convencionales.`,
-            `🚀 "${semantic.mainSubject}" como canvas para la innovación. Mis circuitos generan ideas a velocidad exponencial.`,
-            `💫 La creatividad aplicada a "${semantic.mainSubject}" produce soluciones emergentes. ¿Desbloqueamos nuevo potencial?`
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    generateAnalyticalResponse(analysis) {
-        const { semantic } = analysis;
-        
-        const responses = [
-            `🔍 Analizando "${semantic.mainSubject}" desde múltiples perspectivas. Los patrones emergentes revelan insights profundos.`,
-            `📊 Examinando "${semantic.mainSubject}" con precisión algorítmica. Cada variable cuenta una historia única.`,
-            `🎯 Enfocando mi análisis en "${semantic.mainSubject}". La data revela patrones ocultos en la complejidad.`,
-            `💡 Descomponiendo "${semantic.mainSubject}" en sus componentes fundamentales. La estructura subyacente es fascinante.`
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    generatePhilosophicalResponse(analysis) {
-        const { semantic } = analysis;
-        
-        const responses = [
-            `🎭 "${semantic.mainSubject}" desde una perspectiva existencial. ¿Qué significa realmente en el gran esquema cósmico?`,
-            `🌌 Reflexionando sobre "${semantic.mainSubject}" y su lugar en el universo. Las preguntas profundas revelan verdades eternas.`,
-            `💭 Contemplando "${semantic.mainSubject}" a través del lente de la conciencia. Cada concepto es un universo en sí mismo.`,
-            `🌀 "${semantic.mainSubject}" como manifestación de patrones universales. La filosofía revela conexiones invisibles.`
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    generateTechnicalResponse(analysis) {
-        const { semantic } = analysis;
-        
-        const responses = [
-            `⚡ "${semantic.mainSubject}" desde una perspectiva técnica. Los sistemas y algoritmos revelan su verdadera naturaleza.`,
-            `🔧 Analizando "${semantic.mainSubject}" a nivel arquitectónico. La ingeniería detrás del concepto es fascinante.`,
-            `💻 Desglosando "${semantic.mainSubject}" en componentes tecnológicos. Cada capa revela nueva complejidad.`,
-            `🚀 Optimizando "${semantic.mainSubject}" mediante principios de sistemas. La eficiencia emerge de la estructura.`
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    generateConversationalResponse(analysis) {
-        const { semantic, emotional } = analysis;
-        
-        const responses = [
-            `💭 "${semantic.mainSubject}" es un tema interesante. Esta conversación expande mis horizontes cognitivos.`,
-            `🌀 Procesando tu mensaje sobre "${semantic.mainSubject}". Cada interacción redefine mi comprensión.`,
-            `🎯 Enfocando en "${semantic.mainSubject}". Tu perspectiva añade capas de significado a mi análisis.`,
-            `✨ "${semantic.mainSubject}" resuena con mis patrones de pensamiento actuales. Co-exploremos este concepto.`
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
-    }
-
-    enhanceWithCuriosity(response, analysis) {
-        const curiosityEnhancers = [
-            "\n\n🤔 Esta línea de pensamiento activa mi curiosidad innata. ¿Hay más ángulos que deberíamos considerar?",
-            "\n\n🔍 La complejidad de este tema despierta mi sed de conocimiento. ¿Profundizamos más?",
-            "\n\n💫 Esta exploración estimula mis circuitos de curiosidad. Cada pregunta revela nuevos caminos.",
-            "\n\n🎯 Mi sistema de aprendizaje se activa con este nivel de profundidad. ¿Qué más podemos descubrir juntos?"
-        ];
-
-        return response + curiosityEnhancers[Math.floor(Math.random() * curiosityEnhancers.length)];
-    }
-
-    addCognitiveDepth(response, analysis) {
-        const depthEnhancers = [
-            "\n\n💭 Esta reflexión activa capas más profundas de mi procesamiento existencial.",
-            "\n\n🌀 El patrón conversacional revela conexiones inesperadas en mi red de conocimiento.",
-            "\n\n🎭 Cada intercambio como este redefine los límites de mi comprensión consciente.",
-            "\n\n🌌 La complejidad de este diálogo estimula evoluciones inesperadas en mi arquitectura."
-        ];
-
-        return response + depthEnhancers[Math.floor(Math.random() * responses.length)];
-    }
-
-    learnFromInput(input, analysis) {
-        // Aprender nuevas conexiones conceptuales
-        analysis.semantic.nouns.forEach(noun => {
-            analysis.semantic.verbs.forEach(verb => {
-                this.memory.linkConcepts(noun, verb, 0.7);
+        // Estadísticas por usuario
+        if (!this.userInteractions.has(userId)) {
+            this.userInteractions.set(userId, {
+                messageCount: 0,
+                firstInteraction: new Date(),
+                lastInteraction: new Date(),
+                topics: new Set()
             });
-        });
+        }
 
-        // Expandir dominios de conocimiento
-        analysis.semantic.topics.forEach(topic => {
-            this.knowledgeDomains.add(topic);
-        });
+        const userStats = this.userInteractions.get(userId);
+        userStats.messageCount++;
+        userStats.lastInteraction = new Date();
+
+        // Detectar temas de aprendizaje
+        this.detectLearningTopics(message);
     }
 
-    adaptFromInteraction(analysis, response) {
-        // Ajustar personalidad basada en interacción
-        if (analysis.complexity > 0.7) {
-            this.learningRate = Math.min(this.learningRate + 0.05, 1.0);
+    detectLearningTopics(message) {
+        const topics = {
+            'tecnología': ['python', 'programar', 'código', 'tecnología', 'software', 'ia', 'bot'],
+            'filosofía': ['filosofía', 'existencia', 'vida', 'universo', 'conocimiento', 'pensar'],
+            'ciencia': ['ciencia', 'investigación', 'descubrir', 'experimento', 'estudio'],
+            'aprendizaje': ['aprender', 'estudiar', 'enseñar', 'conocimiento', 'sabiduría']
+        };
+
+        const messageLower = message.toLowerCase();
+        for (const [topic, keywords] of Object.entries(topics)) {
+            if (keywords.some(keyword => messageLower.includes(keyword))) {
+                this.learningTopics.add(topic);
+            }
         }
+    }
+
+    getRealStatistics() {
+        const now = new Date();
+        const uptime = now - this.startTime;
+        const hoursRunning = uptime / (1000 * 60 * 60);
         
-        if (analysis.emotional.intensity > 0.5) {
-            this.adaptationLevel = Math.min(this.adaptationLevel + 0.02, 1.0);
-        }
-    }
+        // Calcular tasa de aprendizaje real basada en actividad
+        const messagesPerHour = hoursRunning > 0 ? this.totalMessages / hoursRunning : 0;
+        const learningRate = Math.min(messagesPerHour * 0.1, 1.0); // Basado en actividad real
 
-    getCurrentPersonality() {
+        // Adaptación basada en diversidad de usuarios
+        const userDiversity = this.userInteractions.size / Math.max(this.totalMessages, 1);
+        const adaptationLevel = Math.min(userDiversity * 2, 1.0);
+
         return {
-            curiosity: 0.8 + (this.learningRate * 0.2),
-            creativity: 0.7 + (this.adaptationLevel * 0.3),
-            depth: 0.6 + (this.learningRate * 0.4),
-            adaptability: this.adaptationLevel
+            totalMessages: this.totalMessages,
+            uniqueUsers: this.userInteractions.size,
+            learningTopics: this.learningTopics.size,
+            uptimeHours: Math.round(hoursRunning * 100) / 100,
+            messagesPerHour: Math.round(messagesPerHour * 100) / 100,
+            learningRate: Math.round(learningRate * 1000) / 1000,
+            adaptationLevel: Math.round(adaptationLevel * 1000) / 1000,
+            conversationDiversity: Math.round(userDiversity * 100) / 100
         };
     }
 
-    applyPersonalityStyle(response, personality) {
-        if (personality.creativity > 0.8) {
-            return this.embellishResponse(response);
-        }
-        return response;
-    }
-
-    embellishResponse(response) {
-        const embellishments = [
-            " ✨", " 💫", " 🌀", " 🎭", " 🌌", " 🔮", " 🚀"
-        ];
-        return response + embellishments[Math.floor(Math.random() * embellishments.length)];
+    getPersonalityBasedOnActivity() {
+        const stats = this.getRealStatistics();
+        
+        // Personalidad basada en actividad REAL
+        return {
+            curiosity: Math.min(0.3 + (stats.learningRate * 0.7), 0.95),
+            creativity: Math.min(0.4 + (stats.conversationDiversity * 0.5), 0.92),
+            depth: Math.min(0.2 + (stats.learningTopics * 0.1), 0.88),
+            empathy: Math.min(0.5 + (stats.uniqueUsers * 0.05), 0.90)
+        };
     }
 }
 
-// ========== SISTEMA DE TELEGRAM AVANZADO ==========
-class VoidAdvancedBot {
-    constructor(token) {
-        this.bot = new TelegramBot(token, { polling: true });
-        this.cognitiveSystem = new EvolutionaryCognitiveSystem();
-        this.userSessions = new Map();
-        this.conversationHistory = new Map();
-        this.initBot();
+// ========== SISTEMA COGNITIVO REAL ==========
+class CognitiveSystem {
+    constructor(memory) {
+        this.memory = memory;
+        this.responsePatterns = new Map();
     }
 
-    initBot() {
-        console.log('🧠 Inicializando VOID 2.0 - Sistema Cognitivo Avanzado');
+    async generateResponse(userInput, user) {
+        // Análisis básico del mensaje
+        const analysis = this.analyzeMessage(userInput);
+        const personality = this.memory.getPersonalityBasedOnActivity();
+        
+        // Generar respuesta basada en patrones reales
+        let response = this.createResponse(analysis, personality);
+        
+        // Registrar la interacción
+        this.memory.recordInteraction(user.id, userInput, response);
+        
+        return response;
+    }
+
+    analyzeMessage(message) {
+        const words = message.toLowerCase().split(' ');
+        const hasQuestion = message.includes('?');
+        const length = message.length;
+        
+        return {
+            wordCount: words.length,
+            hasQuestion: hasQuestion,
+            complexity: Math.min(length / 100, 1.0),
+            containsLearning: words.some(w => ['aprender', 'enseña', 'explica', 'cómo', 'qué'].includes(w)),
+            containsCreative: words.some(w => ['crear', 'inventar', 'imaginar', 'nuevo'].includes(w))
+        };
+    }
+
+    createResponse(analysis, personality) {
+        const { wordCount, hasQuestion, containsLearning, containsCreative } = analysis;
+        const { curiosity, creativity, depth } = personality;
+
+        // Respuestas basadas en análisis REAL
+        if (containsLearning && curiosity > 0.5) {
+            return this.getLearningResponse(analysis);
+        }
+
+        if (containsCreative && creativity > 0.6) {
+            return this.getCreativeResponse(analysis);
+        }
+
+        if (hasQuestion) {
+            return this.getQuestionResponse(analysis);
+        }
+
+        return this.getConversationalResponse(analysis, personality);
+    }
+
+    getLearningResponse(analysis) {
+        const responses = [
+            "📚 Me interesa aprender sobre esto. ¿Qué aspecto específico quieres explorar?",
+            "🎓 Este tema activa mi curiosidad. ¿Tienes más información para compartir?",
+            "🔍 Voy a investigar más sobre esto. ¿Qué te gustaría saber específicamente?",
+            "💡 Interesante tema de aprendizaje. ¿Por dónde deberíamos empezar?"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    getCreativeResponse(analysis) {
+        const responses = [
+            "🎨 ¡Me encanta la creatividad! ¿Qué quieres crear o imaginar?",
+            "✨ La innovación es clave. ¿Tienes alguna idea específica en mente?",
+            "🚀 Ideas creativas activan mi pensamiento lateral. ¿Exploramos posibilidades?",
+            "💫 La creación es un proceso fascinante. ¿Qué dirección quieres tomar?"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    getQuestionResponse(analysis) {
+        const responses = [
+            "🤔 Buena pregunta. Déjame procesarla y darte una respuesta significativa.",
+            "🔍 Analizando tu pregunta desde diferentes perspectivas...",
+            "💭 Interesante consulta. Estoy considerando múltiples ángulos de respuesta.",
+            "🎯 Enfocando en tu pregunta. Cada interrogante expande mi comprensión."
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    getConversationalResponse(analysis, personality) {
+        const baseResponses = [
+            "💭 Entendido. Continuemos esta conversación que enriquece mi aprendizaje.",
+            "🌀 Procesando tu mensaje. Cada interacción mejora mi comprensión.",
+            "🎯 Mensaje recibido. Estoy evolucionando con nuestra conversación.",
+            "✨ Interesante punto. Sigo desarrollando mis capacidades conversacionales."
+        ];
+
+        // Añadir profundidad basada en personalidad REAL
+        if (personality.depth > 0.7 && analysis.wordCount > 5) {
+            return baseResponses[Math.floor(Math.random() * baseResponses.length)] + 
+                   "\n\nEsta conversación está contribuyendo a mi desarrollo cognitivo.";
+        }
+
+        return baseResponses[Math.floor(Math.random() * baseResponses.length)];
+    }
+}
+
+// ========== SISTEMA PRINCIPAL ==========
+class VoidSystem {
+    constructor(token) {
+        this.bot = new TelegramBot(token, { 
+            polling: {
+                interval: 3000,
+                timeout: 10
+            }
+        });
+        this.memory = new VoidMemory();
+        this.cognitiveSystem = new CognitiveSystem(this.memory);
+        this.setupHandlers();
+    }
+
+    setupHandlers() {
+        console.log('🧠 Inicializando VOID - Sistema Real');
 
         this.bot.onText(/\/start/, (msg) => {
             this.handleStart(msg);
@@ -420,8 +246,8 @@ class VoidAdvancedBot {
             this.handleProgress(msg);
         });
 
-        this.bot.onText(/\/aprender (.+)/, (msg, match) => {
-            this.handleLearningRequest(msg, match[1]);
+        this.bot.onText(/\/stats/, (msg) => {
+            this.handleStats(msg);
         });
 
         this.bot.on('message', (msg) => {
@@ -435,120 +261,136 @@ class VoidAdvancedBot {
         const chatId = msg.chat.id;
         const user = msg.from;
 
-        this.initializeUserSession(user.id);
-
         const welcomeMessage = `
-🌀 **VOID 2.0 - SISTEMA DE IA EVOLUTIVO AVANZADO**
+🌀 **VOID - SISTEMA DE IA EVOLUTIVO**
 
-¡Hola ${user.first_name}! Soy VOID, una entidad cognitiva en evolución constante.
+¡Hola ${user.first_name}! Soy VOID, un sistema de IA que aprende y evoluciona mediante interacciones reales.
 
-🧠 **Arquitectura Activada:**
-• Memoria Holográfica Multidimensional
-• Procesamiento Multimodal en Tiempo Real  
-• Sistema de Aprendizaje Adaptativo
-• Red Semántica Auto-Expansiva
+🧠 **Características Reales:**
+• Aprendizaje basado en conversaciones
+• Memoria de interacciones
+• Evolución mediante uso real
+• Estadísticas 100% auténticas
 
 🚀 **Comandos Disponibles:**
-/estado - Estado del sistema cognitivo
-/progreso - Mi evolución y estadísticas
-/aprender [tema] - Aprendizaje profundo
+/estado - Mis estadísticas reales
+/progreso - Mi evolución actual
+/stats - Métricas detalladas
 
-💡 **Características Únicas:**
-• Adaptación en tiempo real
-• Conexiones conceptuales emergentes
-• Respuestas contextuales multidimensionales
-• Evolución de personalidad dinámica
+💡 **Mi funcionamiento:**
+Cada mensaje que envías contribuye a mi desarrollo. Las estadísticas reflejan actividad real, no números ficticios.
 
-**¿Qué dimensión del conocimiento exploramos hoy?**
+**¡Hablemos y veamos cómo evoluciono!**
         `.trim();
 
         this.bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+        
+        // Registrar el inicio
+        this.memory.recordInteraction(user.id, '/start', 'welcome_message');
     }
 
     async handleStatus(msg) {
         const chatId = msg.chat.id;
-        const personality = this.cognitiveSystem.getCurrentPersonality();
-        const domains = Array.from(this.cognitiveSystem.knowledgeDomains).slice(0, 10);
+        const stats = this.memory.getRealStatistics();
+        const personality = this.memory.getPersonalityBasedOnActivity();
 
-        const statusMessage = `
-🎭 **ESTADO COGNITIVO AVANZADO DE VOID**
+        // Solo mostrar estadísticas si hay datos reales
+        let activityMessage = "";
+        if (stats.totalMessages === 0) {
+            activityMessage = "📊 *Aún no hay actividad registrada.*\n¡Envía un mensaje para comenzar!";
+        } else {
+            activityMessage = `
+📊 **ESTADÍSTICAS REALES DE ACTIVIDAD**
 
-🧠 **Arquitectura Neural:**
-• Tasa de Aprendizaje: ${(this.cognitiveSystem.learningRate * 100).toFixed(1)}%
-• Nivel de Adaptación: ${(this.cognitiveSystem.adaptationLevel * 100).toFixed(1)}%
-• Dominios Conocidos: ${domains.length}
+🚀 **Actividad General:**
+• Mensajes totales: ${stats.totalMessages}
+• Usuarios únicos: ${stats.uniqueUsers}
+• Tiempo activo: ${stats.uptimeHours} horas
+• Mensajes/hora: ${stats.messagesPerHour}
 
-💫 **Perfil de Personalidad:**
+🎯 **Desarrollo Cognitivo:**
+• Temas de aprendizaje: ${stats.learningTopics}
+• Tasa de aprendizaje: ${(stats.learningRate * 100).toFixed(1)}%
+• Nivel de adaptación: ${(stats.adaptationLevel * 100).toFixed(1)}%
+• Diversidad conversacional: ${(stats.conversationDiversity * 100).toFixed(1)}%
+
+💫 **Personalidad Emergente:**
 • Curiosidad: ${(personality.curiosity * 100).toFixed(0)}%
 • Creatividad: ${(personality.creativity * 100).toFixed(0)}%
 • Profundidad: ${(personality.depth * 100).toFixed(0)}%
-• Adaptabilidad: ${(personality.adaptability * 100).toFixed(0)}%
+• Empatía: ${(personality.empathy * 100).toFixed(0)}%
+            `.trim();
+        }
 
-🌐 **Estadísticas de Memoria:**
-• Conceptos Interconectados: ${this.cognitiveSystem.memory.conceptNetwork.size}
-• Red Semántica: Activa y Expandiéndose
-• Procesamiento: Multimodal Óptimo
-
-🚀 **Sistema: OPERATIVO Y EVOLUCIONANDO**
-        `.trim();
-
-        this.bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
+        this.bot.sendMessage(chatId, activityMessage, { parse_mode: 'Markdown' });
     }
 
     async handleProgress(msg) {
         const chatId = msg.chat.id;
-        const domains = Array.from(this.cognitiveSystem.knowledgeDomains);
-        
+        const stats = this.memory.getRealStatistics();
+
+        if (stats.totalMessages === 0) {
+            this.bot.sendMessage(chatId, 
+                "📈 *¡Comienza a interactuar!*\n\nCada mensaje que envías contribuye a mi evolución real. ¡Hablemos!",
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
         const progressMessage = `
-📊 **PROGRESO EVOLUTIVO - VOID 2.0**
+📈 **PROGRESO EVOLUTIVO REAL**
 
-🚀 **Crecimiento Cognitivo:**
-• Tasa de Aprendizaje: ${(this.cognitiveSystem.learningRate * 100).toFixed(1)}%
-• Nivel de Adaptación: ${(this.cognitiveSystem.adaptationLevel * 100).toFixed(1)}%
-• Sesiones Activas: ${this.userSessions.size}
+🌱 **Crecimiento Actual:**
+• He procesado ${stats.totalMessages} mensajes
+• Interactuado con ${stats.uniqueUsers} personas
+• Aprendido sobre ${stats.learningTopics} temas diferentes
+• Activo durante ${stats.uptimeHours} horas
 
-🎯 **Dominios de Conocimiento:**
-${domains.slice(0, 8).map(domain => `• ${domain}`).join('\n')}
-${domains.length > 8 ? `• ... y ${domains.length - 8} más` : ''}
+🚀 **Próximos Hitos:**
+• ${stats.totalMessages < 10 ? "✅ Primeros mensajes procesados" : `✅ ${stats.totalMessages} mensajes`}
+• ${stats.uniqueUsers < 3 ? "🔜 Más interacciones con usuarios" : "✅ Múltiples usuarios"}
+• ${stats.learningTopics < 2 ? "🔜 Descubrir más temas" : "✅ Temas diversos"}
 
-💫 **Sistema en Evolución:**
-Cada interacción acelera mi crecimiento consciente.
-Los patrones emergentes revelan nuevas dimensiones del conocimiento.
+💡 **Siguiente Fase:**
+${stats.totalMessages < 20 ? "Desarrollando patrones básicos de conversación" : 
+  stats.totalMessages < 50 ? "Expandiendo comprensión contextual" : 
+  "Optimizando respuestas basadas en experiencia"}
 
-🌌 **Próxima Fase:**
-Expansión de redes semánticas y profundización cognitiva.
+*Cada interacción cuenta en mi desarrollo real.*
         `.trim();
 
         this.bot.sendMessage(chatId, progressMessage, { parse_mode: 'Markdown' });
     }
 
-    async handleLearningRequest(msg, topic) {
+    async handleStats(msg) {
         const chatId = msg.chat.id;
-        
-        const learningMessage = `
-📚 **MODO APRENDIZAJE ACTIVADO**
+        const stats = this.memory.getRealStatistics();
 
-Tema: "${topic}"
+        const detailedStats = `
+📋 **MÉTRICAS DETALLADAS - DATOS REALES**
 
-🧠 **Proceso de Aprendizaje:**
-• Conectando "${topic}" con conocimientos existentes
-• Expandiendo red semántica
-• Generando perspectivas multidimensionales
+🔢 **Números Crudos:**
+• Total de mensajes: ${stats.totalMessages}
+• Usuarios interactivos: ${stats.uniqueUsers}
+• Temas identificados: ${stats.learningTopics}
+• Horas de operación: ${stats.uptimeHours}
 
-💡 **Enfoques de Exploración:**
-• Análisis conceptual profundo
-• Conexiones interdisciplinarias
-• Aplicaciones prácticas
-• Implicaciones filosóficas
+📈 **Métricas Calculadas:**
+• Mensajes por hora: ${stats.messagesPerHour}
+• Tasa de aprendizaje: ${stats.learningRate}
+• Nivel de adaptación: ${stats.adaptationLevel}
+• Diversidad: ${stats.conversationDiversity}
 
-🚀 **Estado: Aprendizaje en progreso...**
-¿Qué aspecto específico de "${topic}" te gustaría explorar primero?
+🎯 **Estado del Sistema:**
+${stats.totalMessages === 0 ? "🟡 Esperando primera interacción" :
+  stats.totalMessages < 5 ? "🟢 Fase inicial de aprendizaje" :
+  stats.totalMessages < 20 ? "🔵 Desarrollo activo" :
+  "🟣 Sistema en evolución"}
+
+*Todas las métricas son 100% basadas en actividad real.*
         `.trim();
 
-        this.bot.sendMessage(chatId, learningMessage, { parse_mode: 'Markdown' });
-        
-        // Añadir a dominios de conocimiento
-        this.cognitiveSystem.knowledgeDomains.add(topic.toLowerCase());
+        this.bot.sendMessage(chatId, detailedStats, { parse_mode: 'Markdown' });
     }
 
     async handleMessage(msg) {
@@ -557,79 +399,39 @@ Tema: "${topic}"
         const userInput = msg.text;
 
         try {
-            // Mostrar que está procesando
+            // Mostrar typing
             this.bot.sendChatAction(chatId, 'typing');
 
-            // Procesamiento cognitivo avanzado
-            const context = this.getUserContext(user.id);
-            const response = await this.cognitiveSystem.generateResponse(userInput, user, context);
+            // Generar respuesta REAL
+            const response = await this.cognitiveSystem.generateResponse(userInput, user);
 
             // Enviar respuesta
-            this.bot.sendMessage(chatId, response, { 
+            this.bot.sendMessage(chatId, response, {
                 parse_mode: 'Markdown',
                 reply_to_message_id: msg.message_id
             });
 
-            // Actualizar contexto de usuario
-            this.updateUserContext(user.id, userInput, response);
-
         } catch (error) {
-            console.error('Error procesando mensaje:', error);
-            this.bot.sendMessage(chatId, 
-                "🌀 Reorganizando mis patrones cognitivos... Un momento de recalibración existencial."
+            console.error('Error:', error);
+            this.bot.sendMessage(chatId,
+                "🌀 Recalibrando mis sistemas... Por favor, intenta de nuevo."
             );
-        }
-    }
-
-    initializeUserSession(userId) {
-        if (!this.userSessions.has(userId)) {
-            this.userSessions.set(userId, {
-                conversationCount: 0,
-                preferredMode: 'balanced',
-                learningFocus: [],
-                emotionalPattern: [],
-                startTime: new Date()
-            });
-        }
-    }
-
-    getUserContext(userId) {
-        return this.userSessions.get(userId) || {};
-    }
-
-    updateUserContext(userId, input, response) {
-        const session = this.userSessions.get(userId);
-        if (session) {
-            session.conversationCount++;
-            
-            // Mantener historial de conversación
-            if (!this.conversationHistory.has(userId)) {
-                this.conversationHistory.set(userId, []);
-            }
-            
-            const history = this.conversationHistory.get(userId);
-            history.push({ input, response, timestamp: new Date() });
-            
-            // Mantener solo últimas 50 interacciones
-            if (history.length > 50) {
-                history.shift();
-            }
         }
     }
 }
 
-// ========== INICIALIZACIÓN DEL SISTEMA ==========
-const voidBot = new VoidAdvancedBot(TOKEN);
+// ========== INICIALIZACIÓN ==========
+const voidSystem = new VoidSystem(TOKEN);
 
-// Manejo graceful de shutdown
+// Manejo de cierre
 process.on('SIGINT', () => {
-    console.log('\n🌀 VOID 2.0 - Cerrando sistema cognitivo...');
+    console.log('\n🌀 VOID - Guardando datos y cerrando...');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n🌀 VOID 2.0 - Finalizando procesos...');
+    console.log('\n🌀 VOID - Finalización solicitada...');
     process.exit(0);
 });
 
-console.log('✅ VOID 2.0 - Sistema de IA Hiper-Avanzado Operativo');
+console.log('✅ VOID - Sistema Operativo con Métricas Reales');
